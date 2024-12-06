@@ -287,9 +287,7 @@ mod tests {
 
     #[bench]
     fn bench_gen_lock_rng(b: &mut test::Bencher) {
-        // let mut rng = rand::thread_rng();
         b.iter(|| {
-            // rng.gen::<Ksuid>()
             Ksuid::generate()
         })
     }
