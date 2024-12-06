@@ -10,7 +10,6 @@ license = "MIT"
 edition = "2021"
 
 [dependencies]
-# docopt = "0.8.0"
 docopt = "1.1.1"
 ksuid = { version="0.3.0", path = ".." }
 rand = "0.8.5"
