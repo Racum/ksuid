@@ -22,20 +22,20 @@ extern crate time;
 mod base62;
 
 use std::io;
-use std::ascii::AsciiExt;
 
 use byteorder::{ByteOrder, BigEndian};
-use time::{Timespec, Duration};
-use rand::{Rng, Rand};
+use time::{OffsetDateTime, Duration};
+use rand::Rng;
+use rand::RngCore;
 
 /// The KSUID epoch, 1.4 billion seconds after the UNIX epoch.
 ///
 /// ```
 /// # extern crate ksuid;
 /// # extern crate time;
-/// assert_eq!(ksuid::EPOCH, time::strptime("2014-5-13 16:53:20", "%Y-%m-%d %T").unwrap().to_timespec());
+/// use time::macros::datetime;
+/// assert_eq!(ksuid::get_epoch(), datetime!(2014-5-13 16:53:20).assume_utc());
 /// ```
-pub const EPOCH: Timespec = Timespec {sec: 1_400_000_000, nsec: 0};
 
 const LEN: usize = 20;
 const EMPTY: [u8; LEN] = [0; LEN];
@@ -43,6 +43,12 @@ const BASE62_LEN: usize = 27;
 const HEX_LEN: usize = 40;
 const HEX_DIGITS: &[u8] = b"0123456789ABCDEF";
 const MAX_BASE62_KSUID: &[u8] = b"aWgEPTl1tmebfsQzFP4bxwgy80V";
+
+/// Returns an OffsetDateTime representing Ksuid's start time.
+/// The crate "time" >= 2 returns a Result, making it incompatible with const.
+pub fn get_epoch() -> OffsetDateTime {
+    OffsetDateTime::from_unix_timestamp(1_400_000_000).unwrap()
+}
 
 /// Get the numeric value corresponding to the given ASCII hex digit.
 fn hex_digit(c: u8) -> io::Result<u8> {
@@ -82,19 +88,16 @@ impl Ksuid {
     /// Create a new identifier with a current timestamp and the given payload.
     pub fn with_payload(payload: [u8; 16]) -> Self {
         // TODO: check for overflow in timestamp
-        let elapsed = time::get_time() - EPOCH;
-        let ts = elapsed.num_seconds() as u32;
+        let elapsed = OffsetDateTime::now_utc() - get_epoch();
+        let ts = elapsed.whole_seconds() as u32;
         Self::new(ts, payload)
     }
 
     /// Create a new identifier with a current timestamp and randomly generated payload.
-    ///
-    /// This function uses the thread local random number generator. this means that if you're
-    /// calling `generate()` in a loop, caching the generator can increase performance. See the
-    /// documentation of [`rand::random()`](https://doc.rust-lang.org/rand/rand/fn.random.html) for
-    /// an example.
     pub fn generate() -> Self {
-        rand::random()
+        let mut data = [0u8; 16];
+        rand::thread_rng().fill_bytes(&mut data);
+        Self::with_payload(data)
     }
 
     /// Parse an identifier from its Base62-encoded string representation.
@@ -206,14 +209,14 @@ impl Ksuid {
     }
 
     /// The number of seconds after the UNIX epoch when this identifier was created.
-    pub fn time(&self) -> Timespec {
-        EPOCH + Duration::seconds(self.timestamp().into())
+    pub fn time(&self) -> OffsetDateTime {
+        get_epoch() + Duration::seconds(self.timestamp().into())
     }
 
     /// Set the timestamp of the identifier to the given time.
-    pub fn set_time(&mut self, time: Timespec) {
-        let dur = time - EPOCH;
-        self.set_timestamp(dur.num_seconds() as u32);
+    pub fn set_time(&mut self, time: OffsetDateTime) {
+        let dur = time - get_epoch();
+        self.set_timestamp(dur.whole_seconds() as u32);
     }
 
     /// The 16-byte random payload.
@@ -227,7 +230,8 @@ impl Ksuid {
     }
 }
 
-impl Rand for Ksuid {
+impl Ksuid {
+    #[allow(dead_code)]
     fn rand<R: Rng>(rng: &mut R) -> Self {
         Self::with_payload(rng.gen())
     }
@@ -283,9 +287,10 @@ mod tests {
 
     #[bench]
     fn bench_gen_lock_rng(b: &mut test::Bencher) {
-        let mut rng = rand::thread_rng();
+        // let mut rng = rand::thread_rng();
         b.iter(|| {
-            rng.gen::<Ksuid>()
+            // rng.gen::<Ksuid>()
+            Ksuid::generate()
         })
     }
 }

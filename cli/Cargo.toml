@@ -1,17 +1,18 @@
 [package]
 authors = ["Dylan MacKenzie <ecstaticmorse.gmail.com>"]
 name = "ksuid-cli"
-version = "0.1.0"
+version = "0.1.1"
 description = "A command line interface for generating, parsing, and serializing Segment.io KSUIDs"
 repository = "https://github.com/ecstatic-morse/ksuid.git"
 readme = "../README.md"
 keywords = ["uuid", "ksuid", "guid"]
 license = "MIT"
+edition = "2021"
 
 [dependencies]
-docopt = "0.8.0"
-ksuid = { version="0.1.0", path = ".." }
-rand = "0.3.15"
-serde = "1.0.8"
-serde_derive = "1.0.8"
-time = "0.1.37"
+# docopt = "0.8.0"
+docopt = "1.1.1"
+ksuid = { version="0.3.0", path = ".." }
+rand = "0.8.5"
+serde = "1.0.215"
+serde_derive = "1.0.215"
